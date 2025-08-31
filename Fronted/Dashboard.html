@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - Movitour</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: url('./Imagenes/playa-dia.jpg') no-repeat center center fixed; background-size: cover; transition: background 0.5s ease-in-out; }
+  body.dark { background: url('./Imagenes/playa-noche.jpg') no-repeat center center fixed; background-size: cover; }
+</style>
+</head>
+<body class="text-white min-h-screen flex flex-col">
+
+<!-- Navbar -->
+<nav class="flex justify-between items-center px-6 py-4 bg-blue-800 bg-opacity-90 shadow-md">
+  <div class="flex items-center gap-2">
+    <img id="dashboardLogo" src="./Imagenes/Modelo logo.png" alt="Movitour Logo" class="w-10">
+    <span class="text-2xl font-bold">Movitour - Dashboard</span>
+  </div>
+  <button id="darkModeToggle" class="bg-yellow-400 hover:bg-yellow-500 text-black px-3 py-1 rounded">🌙</button>
+</nav>
+
+<main class="flex-1 p-8">
+  <h1 class="text-3xl font-bold text-center mb-6">Panel de Control</h1>
+
+  <!-- Tarjetas de estadísticas -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="bg-blue-800 bg-opacity-90 p-6 rounded-2xl shadow-lg">
+      <h2 class="text-xl font-bold">Usuarios</h2>
+      <p class="text-2xl" id="totalUsers">0</p>
+    </div>
+    <div class="bg-blue-800 bg-opacity-90 p-6 rounded-2xl shadow-lg">
+      <h2 class="text-xl font-bold">Reservas</h2>
+      <p class="text-2xl" id="totalBookings">0</p>
+    </div>
+    <div class="bg-blue-800 bg-opacity-90 p-6 rounded-2xl shadow-lg">
+      <h2 class="text-xl font-bold">Ingresos</h2>
+      <p class="text-2xl" id="totalIncome">$0</p>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="mt-8 bg-blue-800 bg-opacity-90 rounded-2xl shadow-lg p-6">
+    <h2 class="text-2xl font-bold mb-4">Últimos Registros</h2>
+    <table class="w-full text-left">
+      <thead>
+        <tr class="bg-yellow-400 text-black">
+          <th class="p-2">ID</th>
+          <th class="p-2">Usuario</th>
+          <th class="p-2">Destino</th>
+          <th class="p-2">Fecha</th>
+        </tr>
+      </thead>
+      <tbody id="reservasTable">
+        <tr><td colspan="4" class="text-center p-4">Cargando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<footer class="bg-blue-800 bg-opacity-90 p-4 text-center">
+  <p>&copy; 2025 Movitour. Dashboard. Todos los derechos reservados.</p>
+</footer>
+
+<script>
+// Dark mode
+const darkToggle = document.getElementById("darkModeToggle");
+const body = document.body;
+const logo = document.getElementById("dashboardLogo");
+
+if(localStorage.getItem("darkMode")==="true"){ body.classList.add("dark"); darkToggle.textContent="☀️"; }
+
+darkToggle.addEventListener("click", ()=>{
+  body.classList.toggle("dark");
+  darkToggle.textContent=body.classList.contains("dark")?"☀️":"🌙";
+  localStorage.setItem("darkMode", body.classList.contains("dark"));
+});
+
+// Cargar reservas y estadísticas
+async function loadDashboard(){
+  const token = localStorage.getItem('jwtToken');
+  if(!token){ window.location.href="login.html"; return; }
+
+  try{
+    const res = await fetch('http://localhost:3000/api/dashboard', { headers:{ 'Authorization': `Bearer ${token}` } });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    // Estadísticas
+    document.getElementById('totalUsers').textContent = data.totalUsers || 0;
+    document.getElementById('totalBookings').textContent = data.totalBookings || 0;
+    document.getElementById('totalIncome').textContent = `$${(data.totalIncome || 0).toLocaleString('es-CO')}`;
+
+    // Tabla de reservas
+    const tbody = document.getElementById('reservasTable');
+    tbody.innerHTML = '';
+    if(data.latestBookings && data.latestBookings.length > 0){
+      data.latestBookings.forEach(b=>{
+        const tr = document.createElement('tr');
+        tr.classList.add('border-b','border-gray-300');
+        tr.innerHTML = `<td class="p-2">${b.id}</td>
+                        <td class="p-2">${b.usuario}</td>
+                        <td class="p-2">${b.destino}</td>
+                        <td class="p-2">${b.fecha}</td>`;
+        tbody.appendChild(tr);
+      });
+    } else {
+      tbody.innerHTML='<tr><td colspan="4" class="text-center p-4">No hay registros</td></tr>';
+    }
+
+  }catch(err){ console.error(err); alert('Error al cargar el dashboard'); }
+}
+
+window.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+
+
+<script>
+// Hide Profile link when no token
+(function(){
+  const token = localStorage.getItem('token');
+  document.querySelectorAll('a[href="profile.html"]').forEach(a=>{
+    a.style.display = token ? '' : 'none';
+  });
+})();
+</script>
+
+</body>
+</html>
+

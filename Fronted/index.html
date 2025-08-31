@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Movitour - Home</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body {
+    background: url('./Imagenes/playa-dia.jpg') no-repeat center center fixed;
+    background-size: cover;
+    transition: background 0.5s ease-in-out;
+  }
+  body.dark {
+    background: url('./Imagenes/playa-noche.jpg') no-repeat center center fixed;
+    background-size: cover;
+  }
+  .city-card { position: relative; cursor: pointer; overflow: hidden; }
+  .city-card img { width: 100%; height: 250px; object-fit: cover; transition: transform 0.3s ease; }
+  .city-card:hover img { transform: scale(1.1); }
+  .city-title {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 1.2rem; font-weight: bold;
+    text-align: center; padding: 8px;
+  }
+</style>
+</head>
+<body class="text-white min-h-screen flex flex-col">
+
+<!-- Navbar -->
+<nav class="bg-blue-800 bg-opacity-90 p-4 flex justify-between items-center shadow-lg">
+  <div class="flex items-center gap-2">
+    <img src="./Imagenes/Modelo logo.png" alt="Movitour Logo" class="w-10 h-10 object-contain">
+    <span class="text-2xl font-bold">Movitour</span>
+  </div>
+  <div class="flex space-x-6">
+    <a href="index.html" class="hover:text-yellow-400 font-semibold">Home</a>
+    <a href="offers.html" class="hover:text-yellow-400 font-semibold">Offers</a>
+    <a href="support.html" class="hover:text-yellow-400 font-semibold">Support</a>
+    <a href="login.html" class="hover:text-yellow-400 font-semibold">Login</a>
+    <a href="profile.html" class="hover:text-yellow-400 font-semibold">Profile</a>
+  </div>
+  <button id="darkModeToggle" class="bg-yellow-400 hover:bg-yellow-500 text-black px-3 py-1 rounded">
+    🌙
+  </button>
+</nav>
+
+<main class="flex-1 p-8">
+  <h1 class="text-3xl font-bold text-center mb-8">Explore Our Cities</h1>
+  <div id="citiesGallery" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <p class="col-span-full text-center">Loading cities...</p>
+  </div>
+  <section class="mt-12 text-center">
+    <h2 class="text-2xl font-bold mb-4">Our Company</h2>
+    <p class="max-w-2xl mx-auto">
+      At <strong>Movitour</strong>, we are passionate about providing the best travel experiences. Discover the Caribbean region's cultural, historical, and natural richness with our exclusive plans.
+    </p>
+  </section>
+</main>
+
+<footer class="bg-blue-800 bg-opacity-90 p-4 text-center">
+  <p>&copy; 2025 Movitour. All rights reserved.</p>
+</footer>
+
+<script>
+const darkToggle = document.getElementById("darkModeToggle");
+const body = document.body;
+
+// Load saved mode
+if(localStorage.getItem("darkMode") === "true") {
+  body.classList.add("dark");
+  darkToggle.textContent = "☀️";
+} else {
+  darkToggle.textContent = "🌙";
+}
+
+// Toggle dark mode
+darkToggle.addEventListener("click", () => {
+  body.classList.toggle("dark");
+  const isDark = body.classList.contains("dark");
+  darkToggle.textContent = isDark ? "☀️" : "🌙";
+  localStorage.setItem("darkMode", isDark);
+});
+
+// Load cities dynamically
+async function loadCities() {
+  try {
+    const res = await fetch('http://localhost:3000/api/ciudades');
+    const data = await res.json();
+    const gallery = document.getElementById('citiesGallery');
+    gallery.innerHTML = '';
+
+    if(data.ciudades?.length) {
+      data.ciudades.forEach(city => {
+        const card = document.createElement('div');
+        card.classList.add('city-card');
+        card.onclick = () => alert(`${city.nombre}: ${city.descripcion}`);
+        card.innerHTML = `
+          <img src="${city.imagen_url}" alt="${city.nombre}">
+          <div class="city-title">${city.nombre}</div>
+        `;
+        gallery.appendChild(card);
+      });
+    } else {
+      gallery.innerHTML = '<p class="col-span-full text-center">No cities available.</p>';
+    }
+  } catch (err) {
+    console.error(err);
+    document.getElementById('citiesGallery').innerHTML = '<p class="col-span-full text-center text-red-500">Error loading cities.</p>';
+  }
+}
+
+window.addEventListener('DOMContentLoaded', loadCities);
+</script>
+
+
+<!-- City Info Modal -->
+<div id="cityModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+  <div class="bg-white text-black rounded-2xl max-w-lg w-11/12 p-4 relative">
+    <button id="cityModalClose" class="absolute top-3 right-3 px-2 py-1 rounded bg-gray-200">✕</button>
+    <img id="cityModalImg" src="" alt="city" class="w-full h-56 object-cover rounded-xl mb-3">
+    <h3 id="cityModalName" class="text-xl font-bold mb-1"></h3>
+    <p id="cityModalDesc" class="text-sm text-gray-700"></p>
+  </div>
+</div>
+<script>
+// Hide Profile link when no token
+(function(){
+  const token = localStorage.getItem('token');
+  document.querySelectorAll('a[href="profile.html"]').forEach(a=>{
+    a.style.display = token ? '' : 'none';
+  });
+})();
+
+// City modal logic (event delegation)
+(function(){
+  const modal = document.getElementById('cityModal');
+  const closeBtn = document.getElementById('cityModalClose');
+  const img = document.getElementById('cityModalImg');
+  const nameEl = document.getElementById('cityModalName');
+  const descEl = document.getElementById('cityModalDesc');
+
+  document.addEventListener('click', (e)=>{
+    const card = e.target.closest('[data-city-card]') || e.target.closest('#citiesGallery > *');
+    if(card){
+      // Try attributes, else infer from DOM: first img and first heading/paragraph
+      const inferImg = card.querySelector('img')?.getAttribute('src') || '';
+      const inferName = card.querySelector('h3,h2,.title')?.textContent?.trim() || card.getAttribute('data-name') || '';
+      const inferDesc = card.querySelector('p,.desc')?.textContent?.trim() || card.getAttribute('data-desc') || '';
+      img.src = card.getAttribute('data-img') || inferImg;
+      nameEl.textContent = card.getAttribute('data-name') || inferName;
+      descEl.textContent = card.getAttribute('data-desc') || inferDesc;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+    if(e.target === modal){
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  });
+  closeBtn?.addEventListener('click', ()=>{
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  });
+})();
+</script>
+
+</body>
+</html>
+
+

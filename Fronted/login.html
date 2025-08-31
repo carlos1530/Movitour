@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Movitour</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: url('./Imagenes/playa-dia.jpg') no-repeat center center fixed; background-size: cover; transition: background 0.5s ease-in-out; }
+  body.dark { background: url('./Imagenes/playa-noche.jpg') no-repeat center center fixed; background-size: cover; }
+</style>
+</head>
+<body class="text-white">
+
+<nav class="flex justify-between items-center px-6 py-4 bg-blue-800 bg-opacity-90 shadow-md">
+  <div class="flex items-center gap-2">
+    <img id="logoImg" src="./Imagenes/Modelo logo.png" alt="Movitour Logo" class="w-10">
+    <span class="font-bold text-xl">Movitour</span>
+  </div>
+  <ul class="flex gap-6 font-semibold">
+    <li><a href="index.html" class="hover:text-yellow-400">Home</a></li>
+    <li><a href="offers.html" class="hover:text-yellow-400">Offers</a></li>
+    <li><a href="support.html" class="hover:text-yellow-400">Support</a></li>
+    <li><a href="login.html" class="hover:text-yellow-400">Login</a></li>
+    <li><a href="profile.html" class="hover:text-yellow-400">profile</a></li>
+  </ul>
+  <button id="darkModeToggle" class="px-3 py-1 rounded text-black bg-yellow-400 hover:bg-yellow-500">🌙</button>
+</nav> <!-- Back button -->
+  <div class="p-4">
+    <button onclick="window.history.back()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded">
+      🔙 Back
+    </button>
+  </div>
+
+
+<section class="flex justify-center items-center h-[80vh]">
+  <div class="bg-blue-800 bg-opacity-80 p-8 rounded-xl shadow-lg w-96">
+    <h2 class="text-2xl font-bold mb-4 text-center">Login</h2>
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Email" class="w-full mb-4 p-2 rounded text-black" required>
+      <input type="password" id="password" placeholder="Password" class="w-full mb-4 p-2 rounded text-black" required>
+      <button type="submit" class="w-full bg-yellow-400 text-black font-bold py-2 rounded hover:bg-yellow-500">Login</button>
+    </form>
+    <p class="text-sm text-center mt-4">
+      Don't have an account? <a href="register.html" class="text-yellow-400 hover:underline">Sign up here</a>
+    </p>
+  </div>
+</section>
+
+<script>
+const darkToggle = document.getElementById("darkModeToggle");
+const body = document.body;
+
+// Load saved mode
+if(localStorage.getItem("darkMode") === "true") {
+  body.classList.add("dark");
+  darkToggle.textContent = "☀️";
+}
+
+// Toggle dark mode
+darkToggle.addEventListener("click", () => {
+  body.classList.toggle("dark");
+  const isDark = body.classList.contains("dark");
+  darkToggle.textContent = isDark ? "☀️" : "🌙";
+  localStorage.setItem("darkMode", isDark);
+});
+
+// Handle login
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+
+  try {
+    const res = await fetch('http://localhost:3000/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password})
+    });
+    if(res.ok){
+      const data = await res.json();
+      localStorage.setItem('jwtToken', data.token);
+      localStorage.setItem('userName', data.user.nombre);
+      localStorage.setItem('userId', data.user.id);
+      alert('Login successful!');
+      window.location.href = "profile.html";
+    } else {
+      const errorData = await res.json();
+      alert(errorData.error || 'Invalid credentials.');
+    }
+  } catch(err) {
+    console.error(err);
+    alert('Connection error. Try again later.');
+  }
+});
+</script>
+
+
+<script>
+// Hide Profile link when no token
+(function(){
+  const token = localStorage.getItem('token');
+  document.querySelectorAll('a[href="profile.html"]').forEach(a=>{
+    a.style.display = token ? '' : 'none';
+  });
+})();
+</script>
+
+</body>
+</html>
+
+

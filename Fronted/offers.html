@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Offers - Movitour</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: url('./Imagenes/playa-dia.jpg') no-repeat center center fixed; background-size: cover; transition: background 0.5s ease-in-out; }
+  body.dark { background: url('./Imagenes/playa-noche.jpg') no-repeat center center fixed; background-size: cover; }
+</style>
+</head>
+<body class="text-white">
+
+<nav class="flex justify-between items-center px-6 py-4 bg-blue-800 bg-opacity-90 shadow-md">
+  <div class="flex items-center gap-2">
+    <img id="logoImg" src="./Imagenes/Modelo logo.png" alt="Movitour Logo" class="w-10">
+    <span class="font-bold text-xl">Movitour</span>
+  </div>
+  <ul class="flex gap-6 font-semibold">
+    <li><a href="index.html" class="hover:text-yellow-400">Home</a></li>
+    <li><a href="offers.html" class="hover:text-yellow-400">Offers</a></li>
+    <li><a href="support.html" class="hover:text-yellow-400">Support</a></li>
+    <li><a href="login.html" class="hover:text-yellow-400">Login</a></li>
+    <li><a href="profile.html" class="hover:text-yellow-400" id="profileLink">Profile</a></li>
+  </ul>
+  <button id="darkModeToggle" class="px-3 py-1 rounded text-black bg-yellow-400 hover:bg-yellow-500">🌙</button>
+</nav>
+ <!-- Back button -->
+  <div class="p-4">
+    <button onclick="window.history.back()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded">
+      🔙 Back
+    </button>
+  </div>
+<section class="flex justify-center items-center p-8">
+  <div class="bg-blue-800 bg-opacity-80 p-8 rounded-xl shadow-lg w-[600px]">
+    <h2 class="text-2xl font-bold mb-6 text-center">Search Offers</h2>
+    <form id="searchForm">
+      <label for="city" class="block mb-1">City</label>
+      <input type="text" id="city" placeholder="City (e.g., Cartagena)" class="w-full mb-4 p-2 rounded text-black">
+      <label for="date" class="block mb-1">Date</label>
+      <input type="date" id="date" class="w-full mb-4 p-2 rounded text-black">
+      <label for="time" class="block mb-1">Time</label>
+      <input type="time" id="time" class="w-full mb-4 p-2 rounded text-black">
+      <button type="submit" class="w-full bg-yellow-400 text-black font-bold py-2 rounded hover:bg-yellow-500">Search</button>
+    </form>
+    <div id="results" class="mt-6">
+      <h3 class="text-xl font-bold mb-4">Available Offers</h3>
+      <div id="offersList" class="grid grid-cols-1 gap-4">
+        <p class="text-center">Loading offers...</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+const TOKEN_KEY = 'jwtToken';
+
+const darkToggle = document.getElementById("darkModeToggle");
+const body = document.body;
+if(localStorage.getItem("darkMode") === "true") { body.classList.add("dark"); darkToggle.textContent="☀️"; }
+darkToggle.addEventListener("click", ()=>{
+  body.classList.toggle("dark");
+  const isDark = body.classList.contains("dark");
+  darkToggle.textContent = isDark ? "☀️" : "🌙";
+  localStorage.setItem("darkMode", isDark);
+});
+
+// Oculta el enlace de perfil si no hay token
+(function(){
+  const token = localStorage.getItem(TOKEN_KEY);
+  const profileLink = document.getElementById('profileLink');
+  if (profileLink) profileLink.style.display = token ? '' : 'none';
+})();
+
+// Loader
+function showLoader() {
+  document.getElementById('offersList').innerHTML = '<p class="text-center">Loading offers...</p>';
+}
+
+// Load all offers
+async function loadAllOffers(){
+  showLoader();
+  try{
+    const res = await fetch('http://localhost:3000/api/offers');
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    displayOffers(data.offers);
+  }catch(err){
+    console.error(err);
+    document.getElementById('offersList').innerHTML='<p class="text-center text-red-500">Error loading offers.</p>';
+  }
+}
+
+function displayOffers(offers){
+  const list = document.getElementById('offersList');
+  list.innerHTML='';
+  if(offers && offers.length>0){
+    offers.forEach(o=>{
+      const card = document.createElement('div');
+      card.className='bg-blue-700 bg-opacity-70 p-4 rounded-xl shadow-md';
+      card.innerHTML=`
+        <h4 class="text-lg font-bold">${o.title}</h4>
+        <p class="text-sm">${o.description}</p>
+        <p class="text-md font-semibold mt-2">City: ${o.city_name}</p>
+        <p class="text-md font-semibold">Date: ${o.date} Time: ${o.time}</p>
+        <p class="text-md font-semibold">Price: $${parseFloat(o.price).toLocaleString('es-CO')}</p>
+        <p class="text-md font-semibold">Available slots: ${o.available_slots}</p>
+        <button 
+          onclick="reserveOffer(${o.id})" 
+          class="mt-3 bg-yellow-400 text-black px-4 py-2 rounded hover:bg-yellow-500 font-bold"
+          ${o.available_slots <= 0 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}
+        >Reserve</button>
+      `;
+      list.appendChild(card);
+    });
+  } else list.innerHTML='<p class="text-center">No offers found.</p>';
+}
+
+// Search
+document.getElementById('searchForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const city=document.getElementById('city').value.trim();
+  const date=document.getElementById('date').value;
+  const time=document.getElementById('time').value;
+  if(!city && !date && !time){
+    alert("Please enter at least one search criteria.");
+    return;
+  }
+  const params=new URLSearchParams();
+  if(city) params.append('city',city);
+  if(date) params.append('date',date);
+  if(time) params.append('time',time);
+  showLoader();
+  try{
+    const res=await fetch(`http://localhost:3000/api/offers/search?${params.toString()}`);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    displayOffers(data.offers);
+  }catch(err){
+    console.error(err);
+    document.getElementById('offersList').innerHTML='<p class="text-center text-red-500">Error searching offers.</p>';
+  }
+});
+
+// Reserve offer
+async function reserveOffer(id){
+  const token=localStorage.getItem(TOKEN_KEY);
+  if(!token){ alert("You must login to reserve."); window.location.href="login.html"; return; }
+  const qty=prompt("How many people? (default: 1)","1");
+  if(qty===null||isNaN(qty)||parseInt(qty)<=0){ alert("Invalid number."); return; }
+  try{
+    const res=await fetch('http://localhost:3000/api/reservations',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body:JSON.stringify({offer_id:id,qty:parseInt(qty)})
+    });
+    if(!res.ok){ const errData=await res.json(); throw new Error(errData.error||`HTTP ${res.status}`); }
+    const data=await res.json();
+    alert(data.message || "Reservation successful!");
+    loadAllOffers();
+  }catch(err){ console.error(err); alert(`Error: ${err.message}`); }
+}
+
+window.addEventListener('DOMContentLoaded', loadAllOffers);
+</script>

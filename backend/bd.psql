@@ -1,0 +1,61 @@
+-- Tabla de usuarios
+CREATE TABLE usuarios (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    activo BOOLEAN DEFAULT true
+);
+
+-- Tabla de ciudades
+CREATE TABLE ciudades (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    descripcion TEXT,
+    imagen_url VARCHAR(255),
+    activa BOOLEAN DEFAULT true
+);
+
+-- Tabla de ofertas/tours
+CREATE TABLE ofertas (
+    id SERIAL PRIMARY KEY,
+    ciudad_id INTEGER REFERENCES ciudades(id),
+    titulo VARCHAR(150) NOT NULL,
+    descripcion TEXT,
+    precio DECIMAL(10,2) NOT NULL,
+    fecha_disponible DATE NOT NULL,
+    hora_disponible TIME NOT NULL,
+    cupos_disponibles INTEGER DEFAULT 10,
+    activa BOOLEAN DEFAULT true,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de reservas
+CREATE TABLE reservas (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER REFERENCES usuarios(id),
+    oferta_id INTEGER REFERENCES ofertas(id),
+    fecha_reserva TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    estado VARCHAR(20) DEFAULT 'pendiente', -- pendiente, confirmada, cancelada
+    cantidad_personas INTEGER DEFAULT 1,
+    total DECIMAL(10,2)
+);
+
+-- Insertar ciudades iniciales
+INSERT INTO ciudades (nombre, descripcion, imagen_url) VALUES
+('Barranquilla', 'Barranquilla es conocida como la Puerta de Oro de Colombia y la casa del Carnaval.', './Imagenes/barranquilla.jpg'),
+('Córdoba', 'Córdoba ofrece cultura, tradición ganadera y paisajes únicos.', './Imagenes/cordoba.jpg'),
+('Montería', 'Montería, la perla del Sinú, es famosa por su río y parques naturales.', './Imagenes/monteria.jpg'),
+('Valledupar', 'Valledupar es la cuna del vallenato y un lugar lleno de tradición musical.', './Imagenes/valledupar.jpg'),
+('Cartagena', 'Cartagena encanta con su ciudad amurallada, playas y vida nocturna.', './Imagenes/cartagena.jpg'),
+('Santa Marta', 'Santa Marta combina historia, playas y la Sierra Nevada.', './Imagenes/Santa Marta.jpg');
+
+-- Insertar algunas ofertas de ejemplo
+INSERT INTO ofertas (ciudad_id, titulo, descripcion, precio, fecha_disponible, hora_disponible) VALUES
+(1, 'Tour Carnaval de Barranquilla', 'Vive la experiencia del Carnaval más grande de Colombia', 150000.00, '2025-02-15', '09:00'),
+(2, 'Aventura Ganadera en Córdoba', 'Conoce las tradiciones ganaderas y disfruta del paisaje', 120000.00, '2025-03-01', '08:00'),
+(3, 'Navegación por el Río Sinú', 'Paseo en bote por el hermoso río de Montería', 80000.00, '2025-02-20', '10:00'),
+(4, 'Festival Vallenato', 'Sumérgete en la música tradicional vallenata', 100000.00, '2025-04-10', '16:00'),
+(5, 'Ciudad Amurallada de Cartagena', 'Recorrido histórico por la ciudad colonial', 200000.00, '2025-02-28', '14:00'),
+(6, 'Trekking Sierra Nevada', 'Aventura en las montañas más altas de Colombia', 250000.00, '2025-03-15', '06:00');
